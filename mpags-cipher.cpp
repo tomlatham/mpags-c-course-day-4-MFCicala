@@ -10,6 +10,7 @@
 #include "TransformChar.hpp"
 #include "ProcessCommandLine.hpp"
 #include "CaesarCipher.hpp"
+#include "PlayfairCipher.hpp"
   
 // Main function of the mpags-cipher program
 int main(int argc, char* argv[])
@@ -103,8 +104,10 @@ int main(int argc, char* argv[])
       }
     case CipherType::Playfair :
       {
-	std::cerr << "[warning] Playfair cipher not yet implemented" << std::endl;
-	outputText = inputText;
+	//Run the PlayFair cipher (using the specified key and encrypt/decrypt flag) on the input text
+	PlayFairCipher cipher {settings.cipherKey};
+	//	std::cerr << "[warning] Playfair cipher not yet implemented" << std::endl;
+	outputText = cipher.applyCipher(inputText, settings.cipherMode );
 	break;
       }
   }
