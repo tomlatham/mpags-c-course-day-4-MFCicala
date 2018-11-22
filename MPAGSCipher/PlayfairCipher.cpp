@@ -12,147 +12,110 @@
 PlayFairCipher::PlayFairCipher( const std::string& key )
 {
     setKey(key);
-  }
+}
 
 
 
 std::string PlayFairCipher::applyCipher( const std::string& inputText, const CipherMode cipherMode ) const
 {
-  std::string text = inputText;
-  //Encrypt
-  if ( cipherMode == CipherMode::Encrypt) 
-    {  
-      // Change J -> I
-      
-      auto changeJI = [] (char elem)
-	{
-	  if (elem =='J')
-	    return 'I';
-	  else
-	    return elem;
-	};
-      std::transform(text.begin(), text.end(), text.begin(), changeJI);
-      
-      // If repeated chars in a digraph add an X or  Q if X
+  //Encrypt or decrypt - set the shift accordingly
+  const std::size_t shift { (cipherMode == CipherMode::Encrypt) ? 1u : 4u };
 
-      const size_t size = inputText.size();
-      
-      int j =0;
+  std::string outputText { inputText };
 
-      for(size_t i=1; i < size; i++)
-	{
-	  j = i%2;
-	  if (j==0)
-	    {
-	      if(inputText[i] == inputText[i-1])
-		{
-		  if(inputText[i-1] != 'X')
-		    {
-		      text[i] = 'X';
-		    }else
-		    {
-		      text[i] = 'Q';
-		    }
-		}
-	    }
-	}
-  
-      // If size of input is odd, add a trailing Z
-      if (j!=0)
-	{
-	  text = text + 'Z';
-	}  
-
-      // Loop over input in Digraphs
-
-      const size_t sizeText = text.size();
-
-      for(size_t i=0; i<sizeText; i = i+2)
-	{
-	  //  - Find the coords in the grid for each digraph
-	  auto coordIter1 = lettermap_.find(text[i]);
-	  auto coordIter2 = lettermap_.find(text[i+1]);
-
-	  std::pair<size_t, size_t> coordinate1 = (*coordIter1).second;
-	  std::pair<size_t, size_t> coordinate2 = (*coordIter2).second;
-
-	  
-
-	  //  - Apply the rules to these coords to get 'new' coords
-	  
-	  if(coordinate1.first == coordinate2.first)
-	    { 
-	      coordinate1.second = (coordinate1.second+1)%5;
-	      coordinate2.second = (coordinate2.second+1)%5;
-	    }
-	  else if (coordinate1.second == coordinate2.second)
-	    {
-	      coordinate1.first = (coordinate1.first+1)%5;
-	      coordinate2.first = (coordinate2.first+1)%5;
-	    }
-	  else
-	    {
-	      coordinate1.second = coordinate2.second;
-	      coordinate2.second = coordinate1.second;
-	    }
-	  
-	  //  - Find the letter associated with the new coords
-	  auto letter1 = positionmap_.find(coordinate1);
-	  auto letter2 = positionmap_.find(coordinate2);
-	  text[i] = (*letter1).second;
-	  text[i+1] = (*letter2).second;
-	}
-      
-      // Return the text
-      return text;
-    }
-
-
-  //Dectrypt:
-  if ( cipherMode == CipherMode::Decrypt) 
+  // Change J -> I
+  auto changeJI = [] (char elem)
     {
-      // Loop over input in Digraphs
-      for(size_t i=0; i<inputText.size(); i = i+2)
-	{
-	  //  - Find the coords in the grid for each digraph
-	  auto coordIter1 = lettermap_.find(inputText[i]);
-	  auto coordIter2 = lettermap_.find(inputText[i+1]);
+      if (elem =='J') {
+        return 'I';
+      } else {
+        return elem;
+      }
+    };
+  std::transform(outputText.begin(), outputText.end(), outputText.begin(), changeJI);
 
-	  std::pair<size_t, size_t> coordinate1 = (*coordIter1).second;
-	  std::pair<size_t, size_t> coordinate2 = (*coordIter2).second;
- 
+  // If repeated chars in a digraph add an X or  Q if X
 
-	  //  - Apply the rules to these coords to get 'new' coords
-	  if(coordinate1.first == coordinate2.first)
-	    { 
-	      coordinate1.second = (coordinate1.second-1+5)%5;
-	      coordinate2.second = (coordinate2.second-1+5)%5;
-	    }
-	  else if (coordinate1.second == coordinate2.second)
-	    {
-	      coordinate1.first = (coordinate1.first-1+5)%5;
-	      coordinate2.first = (coordinate2.first-1+5)%5;
-	    }
-	  else
-	    {
-	      coordinate1.second = coordinate2.second;
-	      coordinate2.second = coordinate1.second;
-	    }
-	  
-	  //  - Find the letter associated with the new coords
-	  auto letter1 = positionmap_.find(coordinate1);
-	  auto letter2 = positionmap_.find(coordinate2);
-	  text[i] = (*letter1).second;
-	  text[i+1] = (*letter2).second;
-    	}
+  const std::size_t size { outputText.size() };
 
-      // Return the text
-      return text;
+  // create an empty temporary string
+  std::string tmpText{};
+
+  for(std::size_t i{0}; i < size; i+=2)
+    {
+      // always add the first character in the digraph
+      tmpText += outputText[i];
+      if ( i+1 == size )
+        {
+          // there isn't a second character in this digraph
+          break;
+        }
+      else if(outputText[i] != outputText[i+1])
+        {
+          // the two characters in the digraph are different,
+          // add the second one as well
+          tmpText += outputText[i+1];
+        }
+      else
+        {
+          // the two characters in the digraph are the same
+          // add an X (or a Q if the first is an X)
+          tmpText += (outputText[i] == 'X') ? 'Q' : 'X';
+          // since we did not use the second character in the digraph,
+          // it now becomes the first character in the next digraph,
+          // so need to decrement i
+          --i;
+        }
     }
-  return text;
 
+  // assign the temporary back to output
+  outputText = tmpText;
+  
+  // If size of input is odd, add a trailing Z
+  // (or add an X if the last character is already a Z)
+  if ( (outputText.size() % 2) == 1 )
+    {
+      outputText += (outputText.back() == 'Z') ? 'X' : 'Z';
+    }  
+
+  // Loop over input in Digraphs
+  const std::size_t sizeText = outputText.size();
+  for(std::size_t i{0}; i < sizeText; i += 2)
+    {
+      //  - Find the coords in the grid for each digraph
+      auto coordIter1 = lettermap_.find(outputText[i]);
+      auto coordIter2 = lettermap_.find(outputText[i+1]);
+
+      PlayfairCoords coordinate1 = (*coordIter1).second;
+      PlayfairCoords coordinate2 = (*coordIter2).second;
+
+      //  - Apply the rules to these coords to get 'new' coords
+	  
+      if (coordinate1.first == coordinate2.first)
+        { 
+          coordinate1.second = (coordinate1.second+shift)%5;
+          coordinate2.second = (coordinate2.second+shift)%5;
+        }
+      else if (coordinate1.second == coordinate2.second)
+        {
+          coordinate1.first = (coordinate1.first+shift)%5;
+          coordinate2.first = (coordinate2.first+shift)%5;
+        }
+      else
+        {
+          std::swap(coordinate1.first, coordinate2.first);
+        }
+
+      //  - Find the letter associated with the new coords
+      auto letter1 = positionmap_.find(coordinate1);
+      auto letter2 = positionmap_.find(coordinate2);
+      outputText[i]   = (*letter1).second;
+      outputText[i+1] = (*letter2).second;
+    }
+
+  // Return the text
+  return outputText;
 }
-
 
 void PlayFairCipher::setKey(const std::string& key)
 {
@@ -160,7 +123,7 @@ void PlayFairCipher::setKey(const std::string& key)
   key_ = key;
 
   // Append the alphabet
-  key_ = key_+ "A"+"B"+"C"+"D"+"E"+"F"+"G"+"H"+"I"+"J"+"K"+"L"+"M"+"N"+"O"+"P"+"Q"+"R"+"S"+"T"+"U"+"V"+"W"+"X"+"Y"+"Z";
+  key_ += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   // Make sure the key is upper case
   std::transform(key_.begin(), key_.end(), key_.begin(), ::toupper);
@@ -198,23 +161,13 @@ void PlayFairCipher::setKey(const std::string& key)
   auto iter2 = std::remove_if(key_.begin(), key_.end(), removeDuplicate );
   key_.erase(iter2, key_.end());
 
-  // std::cout << key_ << "\n";
-
   // Store the coords of each letter
   // Store the playfair cihper key map
 
-  //  using Coord2StringMap = std::map<std::pair, std::string>;
-  // using String2CoordMap = std::map<std::string, std::pair>;
-
-  //Coord2StringMap positionmap;
-  //String2CoordMap lettermap;
-
-  for (int i = 0; i <=25; i++)
+  for (std::size_t i = 0; i < 25; i++)
     {
-      std::pair<int, int> coord{i%5,i/5};
-      auto positionItem{ std::make_pair(coord, key_[i])};
-      auto letterItem{ std::make_pair(key_[i], coord)};
-      positionmap_.insert(positionItem);
-      lettermap_.insert(letterItem);
+      PlayfairCoords coord{i%5,i/5};
+      positionmap_.insert( std::make_pair(coord, key_[i]) );
+      lettermap_.insert( std::make_pair(key_[i], coord) );
     }  
 }

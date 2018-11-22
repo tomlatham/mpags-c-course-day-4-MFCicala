@@ -42,28 +42,22 @@ class PlayFairCipher {
   void setKey(const std::string& key);
 
   private:
-  /** The alphabet - used to determine the cipher character given the plain character and the key
-   *
-   *\param alphabet the vector containing the alphabet letters
-   */
-  // const std::vector<char> alphabet_ = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
-
-  /** The size of the alphabet
-   *
-   *\param alphabetSize the vector containing the size of the alphabet vector
-   */
-  //const std::vector<char>::size_type alphabetSize_ = alphabet_.size();
-
-  /** The cipher key, essentially a constant shift to be applied
-   *
-   *\param key_ the sze_t parameter used to store the cipher key
-   */
+  /// The cipher key phrase
   std::string key_{'A'};
   
-  using Coord2StringMap = std::map<std::pair<std::size_t, std::size_t>, char>;
-  using String2CoordMap = std::map<char, std::pair<std::size_t, std::size_t>>;
+  /// Type definition for the coordinates in the 5x5 table
+  using PlayfairCoords = std::pair<std::size_t, std::size_t>;
 
+  /// Type definition for the map relating the coordinates to the key letter
+  using Coord2StringMap = std::map<PlayfairCoords, char>;
+
+  /// Type definition for the map relating the key letter to the coordinates
+  using String2CoordMap = std::map<char, PlayfairCoords>;
+
+  /// Lookup table to go from the coordinates to the character
   Coord2StringMap positionmap_;
+
+  /// Lookup table to go from the character to the coordinates
   String2CoordMap lettermap_;
 
 };
